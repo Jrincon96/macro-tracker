@@ -1,0 +1,17 @@
+# Runs the production build locally in Docker.
+# Day-to-day dev: `npm run dev`, with the database from `npx supabase start`
+# (the Supabase CLI runs Postgres, Auth and Storage in Docker; added in Phase 2).
+services:
+  app:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
+    ports:
+      - "3000:3000"
+    env_file:
+      - path: .env.local
+        required: false
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
