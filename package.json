@@ -10,7 +10,8 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run --exclude \"tests/integration/**\"",
     "test:watch": "vitest",
-    "test:db": "vitest run tests/integration"
+    "test:db": "vitest run tests/integration",
+    "db:types": "supabase gen types typescript --local > lib/supabase/database.types.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

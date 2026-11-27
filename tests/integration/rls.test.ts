@@ -77,4 +77,26 @@ describe.skipIf(!enabled)("row-level security", () => {
     expect((await alice.client.from("goals").insert(goal)).error).toBeNull();
     expect((await alice.client.from("goals").insert(goal)).error).not.toBeNull();
   });
+
+  it("supports the goal save flow: profile upsert, weigh-in upsert, goal swap", async () => {
+    const c = alice.client;
+    expect((await c.from("profiles").upsert({
+      user_id: alice.id, sex: "male", birth_date: "1996-01-01", height_cm: 177.8,
+      activity_level: "moderate", units: "imperial", timezone: "America/New_York",
+    })).error).toBeNull();
+
+    const weigh = { user_id: alice.id, date: "2026-11-27", weight_kg: 81.65 };
+    expect((await c.from("weigh_ins").upsert(weigh, { onConflict: "user_id,date" })).error).toBeNull();
+    expect((await c.from("weigh_ins").upsert({ ...weigh, weight_kg: 81.2 }, { onConflict: "user_id,date" })).error).toBeNull();
+    const { data: weighs } = await c.from("weigh_ins").select("weight_kg").eq("date", "2026-11-27");
+    expect(weighs?.map((w) => Number(w.weight_kg))).toEqual([81.2]);
+
+    // Retire whatever is active, then insert the new goal.
+    expect((await c.from("goals").update({ active: false }).eq("active", true)).error).toBeNull();
+    expect((await c.from("goals").insert({
+      type: "lean_bulk", kcal: 2900, protein_g: 163, carbs_g: 380, fat_g: 81, active: true,
+    })).error).toBeNull();
+    const { data: active } = await c.from("goals").select("type").eq("active", true);
+    expect(active).toEqual([{ type: "lean_bulk" }]);
+  });
 });
