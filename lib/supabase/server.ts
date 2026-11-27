@@ -1,6 +1,7 @@
 import "server-only";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 
 /** Supabase client for Server Components, Server Actions and Route Handlers. Create one per request. */
 export async function createClient() {
@@ -31,6 +32,7 @@ export async function createClient() {
 
 /** Returns the verified user id + email, or null when signed out. */
 export async function getUser() {
+  await connection();
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
