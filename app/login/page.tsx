@@ -7,7 +7,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>Macro Tracker</CardTitle>
-          <CardDescription>Sign in with a one-time code sent to your email.</CardDescription>
+          <CardDescription>Sign in to track your macros.</CardDescription>
         </CardHeader>
         <CardContent>
           <LoginForm />
