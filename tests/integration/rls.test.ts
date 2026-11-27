@@ -99,4 +99,40 @@ describe.skipIf(!enabled)("row-level security", () => {
     const { data: active } = await c.from("goals").select("type").eq("active", true);
     expect(active).toEqual([{ type: "lean_bulk" }]);
   });
+
+  it("logs a meal with items, reads the day back, and deletes it with its items", async () => {
+    const c = alice.client;
+    const { data: meal, error } = await c.from("meals")
+      .insert({ eaten_on: "2026-11-20", meal_type: "dinner", name: "Steak + rice", source: "usda" })
+      .select("id").single();
+    expect(error).toBeNull();
+    expect((await c.from("meal_items").insert([
+      { meal_id: meal!.id, name: "Sirloin", quantity: 6, unit: "oz", kcal: 350, protein_g: 50, carbs_g: 0, fat_g: 15, usda_fdc_id: 123 },
+      { meal_id: meal!.id, name: "Rice", quantity: 1, unit: "cup", kcal: 205, protein_g: 4.3, carbs_g: 45, fat_g: 0.4 },
+    ])).error).toBeNull();
+
+    const { data: day } = await c.from("meals")
+      .select("id, meal_items (kcal, protein_g)").eq("eaten_on", "2026-11-20");
+    expect(day).toHaveLength(1);
+    expect(day![0].meal_items).toHaveLength(2);
+    const { data: totals } = await c.from("daily_totals").select("kcal, protein_g").eq("day", "2026-11-20").single();
+    expect(Number(totals!.kcal)).toBe(555);
+    expect(Number(totals!.protein_g)).toBeCloseTo(54.3, 1);
+
+    // Bob can't delete Alice's meal (RLS makes it a silent no-op).
+    await bob.client.from("meals").delete().eq("id", meal!.id);
+    expect((await c.from("meals").select("id").eq("id", meal!.id)).data).toHaveLength(1);
+
+    expect((await c.from("meals").delete().eq("id", meal!.id)).error).toBeNull();
+    expect((await c.from("meal_items").select("id").eq("meal_id", meal!.id)).data).toEqual([]);
+  });
+
+  it("upserts saved foods by name and keeps them private", async () => {
+    const food = { name: "Protein shake", serving: "1 scoop", kcal: 120, protein_g: 24, carbs_g: 3, fat_g: 1.5 };
+    expect((await alice.client.from("saved_foods").upsert(food, { onConflict: "user_id,name" })).error).toBeNull();
+    expect((await alice.client.from("saved_foods").upsert({ ...food, kcal: 130 }, { onConflict: "user_id,name" })).error).toBeNull();
+    const { data } = await alice.client.from("saved_foods").select("kcal").eq("name", "Protein shake");
+    expect(data?.map((d) => Number(d.kcal))).toEqual([130]);
+    expect((await bob.client.from("saved_foods").select("id")).data).toEqual([]);
+  });
 });

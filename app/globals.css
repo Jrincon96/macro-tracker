@@ -128,3 +128,17 @@
     @apply font-sans;
   }
 }
+/* Data-viz tokens (meters). Track is a lighter step of the fill's own ramp;
+   status colors are reserved for over/hit states and always paired with an icon + label. */
+:root {
+  --viz-fill: #2a78d6;
+  --viz-track: #cde2fb;
+  --viz-good: #0ca30c;
+  --viz-serious: #ec835a;
+}
+.dark {
+  --viz-fill: #3987e5;
+  --viz-track: #184f95;
+  --viz-good: #0ca30c;
+  --viz-serious: #ec835a;
+}

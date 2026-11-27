@@ -33,6 +33,9 @@ export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublic = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
+  if (!signedIn && pathname.startsWith("/api/")) {
+    return NextResponse.json({ error: "Signed out" }, { status: 401 });
+  }
   if (!signedIn && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
